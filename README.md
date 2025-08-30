@@ -14,16 +14,20 @@ The infrastructure consists of a public-facing Application Load Balancer that di
 graph TD
     subgraph "AWS Cloud"
         subgraph "VPC (10.0.0.0/16)"
+            IGW[Internet Gateway]
+
             subgraph "Availability Zone 1"
                 PubSub1[Public Subnet 1]
                 PrivSub1[Private Subnet 1]
                 NAT1[NAT Gateway]
                 EC2_1[EC2 Instance]
+                EIP1[Elastic IP]
 
-                PubSub1 -- NAT1
-                PrivSub1 -- NAT1 --> IGW
-                NAT1 -- EIP1[Elastic IP]
-                EC2_1 -- PrivSub1
+                PubSub1 --> NAT1
+                NAT1 -- Attached --> EIP1
+                PrivSub1 --> NAT1
+                NAT1 --> IGW
+                EC2_1 -- Lives in --> PrivSub1
             end
 
             subgraph "Availability Zone 2"
@@ -31,24 +35,26 @@ graph TD
                 PrivSub2[Private Subnet 2]
                 NAT2[NAT Gateway]
                 EC2_2[EC2 Instance]
+                EIP2[Elastic IP]
 
-                PubSub2 -- NAT2
-                PrivSub2 -- NAT2 --> IGW
-                NAT2 -- EIP2[Elastic IP]
-                EC2_2 -- PrivSub2
+                PubSub2 --> NAT2
+                NAT2 -- Attached --> EIP2
+                PrivSub2 --> NAT2
+                NAT2 --> IGW
+                EC2_2 -- Lives in --> PrivSub2
             end
 
             ALB[Application Load Balancer] -- Distributes Traffic --> TG(Target Group)
             TG -- Registers --> EC2_1
             TG -- Registers --> EC2_2
-            ALB -- PubSub1
-            ALB -- PubSub2
+            ALB -- Lives in --> PubSub1
+            ALB -- Lives in --> PubSub2
+            ALB -- Routes to --> IGW
         end
     end
 
     User[Internet User] --> Route53[Route 53 DNS]
     Route53 -- Alias Record --> ALB
-    ALB --> IGW[Internet Gateway]
 ```
 
 ## Features
